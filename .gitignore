@@ -1,0 +1,7 @@
+.erlang.mk/
+deps/
+ebin/*.beam
+ebin/test
+farwest.d
+logs/
+test/*.beam

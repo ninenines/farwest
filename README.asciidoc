@@ -1,0 +1,33 @@
+= Farwest
+
+Farwest is a framework for building RESTful HATEOAS-driven
+applications.
+
+== Goals
+
+Farwest aims to provide server and client libraries for building
+and manipulating RESTful applications. It follows the full set
+of REST constraints and relies on as few non-standard components
+as possible (the components may be proposed as standards as part
+of the development of Farwest).
+
+The client libraries can be used with any Farwest application,
+saving the need to create separate client libraries per API.
+
+Farwest is best for document-based applications, as opposed
+to data driven applications. Though Farwest could be used to
+implement an application providing a document-based interface
+that includes a resource for querying data when necessary
+(for example a user-facing website and a GraphQL endpoint).
+
+== Documentation
+
+This project is currently in early development and, as such,
+the code is the documentation. Sorry!
+
+== Getting help
+
+* Official IRC Channel: #ninenines on irc.freenode.net
+* https://github.com/ninenines/farwest/issues[Issues tracker]
+* https://ninenines.eu/services[Commercial Support]
+* https://github.com/sponsors/essen[Sponsor me!]
