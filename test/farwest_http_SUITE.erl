@@ -30,8 +30,7 @@ groups() ->
 
 init_per_suite(Config) ->
 	{ok, _} = application:ensure_all_started(farwest_demo),
-%	@todo OriginPort = ranch:get_port(farwest_demo),
-	OriginPort = 8080,
+	OriginPort = ranch:get_port(clear_farwest_demo),
 	[{origin_port, OriginPort}|Config].
 
 end_per_suite(_) ->
