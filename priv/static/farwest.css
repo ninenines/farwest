@@ -1,0 +1,15 @@
+nav ul li{display:inline;margin-right:1em}
+
+dl{display:flex;flex-flow:row;flex-wrap:wrap;width:100%;overflow:visible}
+dl dt{flex:0 0 50%;text-overflow:ellipsis;overflow:hidden}
+dl dd{flex:0 0 50%;margin-left:auto;text-align:left;text-overflow:ellipsis;overflow:hidden}
+dl,dl p{margin:0;padding:0}
+
+tr{text-align:center}
+th:first-child, td:first-child{text-align: left}
+th, td{border:1px solid #ccc}
+tr:nth-child(2n) td{background:#fafafa}
+tr:hover td {background: #f2f2f6}
+th{background:#eee}
+th, td{padding:0.3em 1em}
+table p{margin:0}
