@@ -134,14 +134,8 @@ set_variants_headers(Req=#{media_type := MediaType}, State) ->
 			}, Req)
 	end.
 
-accept_representation(Req0=#{method := Method}, State=#{resource := Mod}) ->
-	%% @todo Some methods are used for multiple operations.
-	%% @todo We need a way to differentiate between them.
-	Op = case Method of
-		<<"PUT">> -> put;
-		<<"POST">> -> process;
-		<<"DELETE">> -> delete
-	end,
+accept_representation(Req0, State=#{resource := Mod}) ->
+	Op = farwest:req_to_operation(Req0, State),
 	case Mod:Op(Req0) of
 		{ok, Req} ->
 			{true, Req, State}

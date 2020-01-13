@@ -20,6 +20,8 @@
 -export([list_routes/1]).
 -export([media_type_to_alias/2]).
 -export([normalize_media_type/1]).
+-export([register_operation/2]).
+-export([req_to_operation/2]).
 -export([resource_list_methods/1]).
 -export([resource_list_ops/1]).
 -export([resource_media_type/2]).
@@ -76,10 +78,28 @@ normalize_media_type({Type, SubType, _Params}) ->
 normalize_media_type(MediaType) ->
 	iolist_to_binary(MediaType).
 
+register_operation(Op, Def) ->
+	Operations = get_operations(),
+	false = maps:is_key(Op, Operations),
+	persistent_term:put(farwest_operations, Operations#{Op => Def}).
+
+%% @todo We need to differentiate between different POST operations.
+req_to_operation(Req, Mod) when is_atom(Mod) ->
+	req_to_operation(Req, Mod:describe());
+req_to_operation(#{method := Method}, #{operations := Operations}) ->
+	%% @todo This should probably be computed only once.
+	MethodOp = map:fold(fun
+		(Op, #{methods := Ms}, Acc0) when is_list(Ms) ->
+			lists:foldl(fun(M, Acc) -> Acc#{M => Op} end, Acc0, Ms);
+		(Op, #{methods := M}, Acc) ->
+			Acc#{M => Op}
+	end, #{}, Operations),
+	#{Method := Op} = MethodOp,
+	Op.
+
 resource_list_methods(Mod) when is_atom(Mod) ->
 	resource_list_methods(Mod:describe());
 resource_list_methods(#{operations := Operations}) ->
-	%% @todo Make operations user definable.
 	OpDefs = get_operations(),
 	[<<"OPTIONS">>|lists:usort(lists:flatten([begin
 		#{Op := #{methods := Methods}} = OpDefs,
