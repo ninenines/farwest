@@ -14,14 +14,36 @@
 
 -module(farwest).
 
+-export([get_operations/0]).
+-export([init_state/0]).
 -export([list_resource_modules/1]).
 -export([list_routes/1]).
 -export([media_type_to_alias/2]).
 -export([normalize_media_type/1]).
+-export([resource_list_methods/1]).
 -export([resource_list_ops/1]).
 -export([resource_media_type/2]).
 -export([resource_provides/1]).
 -export([resource_accepts/1]).
+
+get_operations() ->
+	persistent_term:get(farwest_operations).
+
+init_state() ->
+	persistent_term:put(farwest_operations, #{
+		get => #{
+			methods => [<<"GET">>, <<"HEAD">>]
+		},
+		process => #{
+			methods => <<"POST">>
+		},
+		put => #{
+			methods => <<"PUT">>
+		},
+		delete => #{
+			methods => <<"DELETE">>
+		}
+	}).
 
 list_resource_modules(App) ->
 	{ok, Mod} = application:get_env(App, farwest_config_module),
@@ -53,6 +75,16 @@ normalize_media_type({Type, SubType, _Params}) ->
 	iolist_to_binary([Type, $/, SubType]);
 normalize_media_type(MediaType) ->
 	iolist_to_binary(MediaType).
+
+resource_list_methods(Mod) when is_atom(Mod) ->
+	resource_list_methods(Mod:describe());
+resource_list_methods(#{operations := Operations}) ->
+	%% @todo Make operations user definable.
+	OpDefs = get_operations(),
+	[<<"OPTIONS">>|lists:usort(lists:flatten([begin
+		#{Op := #{methods := Methods}} = OpDefs,
+		Methods
+	end || Op <- maps:keys(Operations)]))].
 
 %% @todo Is this necessary?
 resource_list_ops(Mod) when is_atom(Mod) ->

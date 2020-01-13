@@ -26,8 +26,6 @@ groups() ->
 	Tests = ct_helper:all(?MODULE),
 	[{farwest, [parallel], Tests}].
 
-%% @todo Use farwest_demo for tests.
-
 init_per_suite(Config) ->
 	{ok, _} = application:ensure_all_started(farwest_demo),
 	OriginPort = ranch:get_port(clear_farwest_demo),

@@ -19,6 +19,7 @@
 -export([stop/1]).
 
 start(_Type, _Args) ->
+	farwest:init_state(),
 	farwest_sup:start_link().
 
 stop(_State) ->

@@ -29,17 +29,8 @@ init(Req, Mod) ->
 	State = Mod:describe(),
 	{cowboy_rest, Req#{resource => Mod}, State#{resource => Mod}}.
 
-allowed_methods(Req, State=#{operations := Ops}) ->
-	%% @todo Make operations user definable.
-	%% @todo Make a farwest function for this?
-	%% @todo Make farwest functions with/without Describe call?
-	Methods = lists:usort(lists:flatten([case Op of
-		get -> [<<"GET">>, <<"HEAD">>];
-		process -> <<"POST">>;
-		put -> <<"PUT">>;
-		delete -> <<"DELETE">>
-	end || Op <- maps:keys(Ops)])),
-	{[<<"OPTIONS">>|Methods], Req, State}.
+allowed_methods(Req, State) ->
+	{farwest:resource_list_methods(State), Req, State}.
 
 options(Req0, State=#{resource := Mod}) ->
 	{ok, Links, Req1} = Mod:links(Req0),
