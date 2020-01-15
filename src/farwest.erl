@@ -92,12 +92,12 @@ req_to_operation(Req, Mod) when is_atom(Mod) ->
 	req_to_operation(Req, Mod:describe());
 req_to_operation(#{method := Method}, #{operations := Operations}) ->
 	%% @todo This should probably be computed only once.
-	MethodOp = map:fold(fun
+	MethodOp = maps:fold(fun
 		(Op, #{methods := Ms}, Acc0) when is_list(Ms) ->
 			lists:foldl(fun(M, Acc) -> Acc#{M => Op} end, Acc0, Ms);
 		(Op, #{methods := M}, Acc) ->
 			Acc#{M => Op}
-	end, #{}, Operations),
+	end, #{}, maps:with(maps:keys(Operations), get_operations())),
 	#{Method := Op} = MethodOp,
 	Op.
 
