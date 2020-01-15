@@ -44,8 +44,15 @@ links_to_html(Links) ->
 					true ->
 						URIOrMod
 				end,
-				[<<"<li><a href=\"">>, URI, <<"\" rel=\"">>, atom_to_binary(Rel, utf8), <<"\">">>,
-					URI, <<"</a></li>">>]
+				%% @todo Temporary mesure until we use URI Templates exclusively:
+				%% we don't want to link to routes that aren't a URI.
+				case string:find(URI, <<":">>) of
+					nomatch ->
+						[<<"<li><a href=\"">>, URI, <<"\" rel=\"">>, atom_to_binary(Rel, utf8), <<"\">">>,
+							URI, <<"</a></li>">>];
+					_ ->
+						[<<"<li>">>, URI, <<"</li>">>]
+				end
 		end || Link <- Links],
 		<<"</ul></nav>">>
 	].
