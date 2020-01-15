@@ -53,8 +53,12 @@ list_resource_modules(App) ->
 
 list_routes(App) ->
 	[begin
-		#{uri := URI} = Mod:describe(),
-		{URI, farwest_resource_h, Mod}
+		case Mod:describe() of
+			#{uri := URI, constraints := Constraints} ->
+				{URI, Constraints, farwest_resource_h, Mod};
+			#{uri := URI} ->
+				{URI, farwest_resource_h, Mod}
+		end
 	end || Mod <- list_resource_modules(App)]
 	++ [{"/farwest-static/[...]", cowboy_static, {priv_dir, farwest, "static/"}}].
 
