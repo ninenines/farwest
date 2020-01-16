@@ -34,16 +34,28 @@ get_operations() ->
 init_state() ->
 	persistent_term:put(farwest_operations, #{
 		get => #{
-			methods => [<<"GET">>, <<"HEAD">>]
+			idempotent => true,
+			methods => [<<"GET">>, <<"HEAD">>],
+			request_payload => none,
+			safe => true
 		},
 		process => #{
-			methods => <<"POST">>
+			idempotent => false,
+			methods => <<"POST">>,
+			request_payload => representation,
+			safe => false
 		},
 		put => #{
-			methods => <<"PUT">>
+			idempotent => true,
+			methods => <<"PUT">>,
+			request_payload => representation,
+			safe => false
 		},
 		delete => #{
-			methods => <<"DELETE">>
+			idempotent => true,
+			methods => <<"DELETE">>,
+			request_payload => none,
+			safe => false
 		}
 	}).
 

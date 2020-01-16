@@ -141,45 +141,58 @@ tuple_to_html_row(Tuple, Keys) ->
 	].
 
 operations_to_html(Req=#{resource := Mod}) ->
+	RegisteredOps = farwest:get_operations(),
 	#{operations := Ops} = Mod:describe(),
 	maps:fold(fun(Op, OpInfo, Acc) ->
-		Inputs = maps:get(input, OpInfo, []),
-		[
-			[
-				operation_to_html(Req, Op, Alias)
-			|| Alias <- Inputs]
-		|Acc]
+		case RegisteredOps of
+			%% @todo We also want to add safe operations (like get to different media types).
+			#{Op := #{safe := true}} ->
+				Acc;
+			#{Op := #{methods := Methods, request_payload := none}} ->
+				[operation_to_html(Op, Methods)|Acc];
+			#{Op := #{methods := Methods, request_payload := representation}} ->
+				Inputs = maps:get(input, OpInfo, []),
+				[
+					[
+						operation_to_html(Req, Op, Methods, Alias)
+					|| Alias <- Inputs]
+				|Acc]
+		end
 	end, [], Ops).
 
-%% @todo Don't keep operations/methods hardcoded. Ideally
-%% we would be able to describe operations entirely including
-%% whether they are idempotent, take input, generally do output
-%% and so on, and the method would be chosen based on that if
-%% there are no suitable standard method.
-operation_to_html(Req=#{resource := Mod}, Op, Alias) ->
-	%% @todo Obviously we don't want to call get twice...
-	{ok, Data0, _} = Mod:get(Req),
-	%% @todo Obviously we should call to_representation or something.
-	Data = io_lib:format("~0p", [Data0]),
-	%% @todo Make operations definable.
-	Method = case Op of
-		put -> <<"PUT">>;
-		process -> <<"POST">>;
-		delete -> <<"DELETE">>
-	end,
-	[
+operation_to_html(Op, Methods) when is_list(Methods) ->
+	[[
 		<<"<form method=\"">>,
 		Method,
 		<<"\" data-operation=\"">>,
 		atom_to_binary(Op, utf8),
-		<<"\" enctype=\"text/plain\"><legend>">>,
+		<<"\"><legend>">>,
+		atom_to_binary(Op, utf8),
+		<<"</legend><input type=\"submit\"/></form>">>
+	] || Method <- Methods];
+operation_to_html(Op, Method) ->
+	operation_to_html(Op, [Method]).
+
+operation_to_html(Req=#{resource := Mod}, Op, Methods, Alias) when is_list(Methods) ->
+	%% @todo Obviously we don't want to call get twice...
+	{ok, Data0, _} = Mod:get(Req),
+	%% @todo Obviously we should call to_representation or something.
+	Data = io_lib:format("~0p", [Data0]),
+	[[
+		<<"<form method=\"">>,
+		Method,
+		<<"\" data-operation=\"">>,
+		atom_to_binary(Op, utf8),
+		<<"\" enctype=\"text/plain\"><legend>">>, %% @todo Fix enctype.
 		atom_to_binary(Op, utf8),
 		<<": ">>,
 		farwest:resource_media_type(Mod, Alias),
 		<<"</legend><textarea name=\"representation\" required>">>,
 		Data,
 		<<"</textarea><input type=\"submit\"/></form>">>
-	].
+	] || Method <- Methods];
+operation_to_html(Req, Op, Method, Alias) ->
+	operation_to_html(Req, Op, [Method], Alias).
 
 header() ->
 	<<
