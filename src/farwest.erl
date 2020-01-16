@@ -16,6 +16,7 @@
 
 -export([get_operations/0]).
 -export([init_state/0]).
+-export([link_to/2]).
 -export([list_resource_modules/1]).
 -export([list_routes/1]).
 -export([media_type_to_alias/2]).
@@ -58,6 +59,14 @@ init_state() ->
 			safe => false
 		}
 	}).
+
+link_to(Mod, Vars) when is_atom(Mod) ->
+	case Mod:describe() of
+		#{uri_template := URITemplate} ->
+			cow_uri_template:expand(unicode:characters_to_binary(URITemplate), Vars);
+		#{uri := URI} ->
+			URI
+	end.
 
 list_resource_modules(App) ->
 	{ok, Mod} = application:get_env(App, farwest_config_module),
