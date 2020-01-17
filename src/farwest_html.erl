@@ -16,11 +16,11 @@
 
 -export([from_term/2]).
 
-from_term(Req=#{links := Links}, Term) ->
+from_term(Req, Term) ->
 	[
-		header(),
+		header(Req),
 		<<"<main>">>,
-		links_to_html(Links),
+		nav(Req),
 		<<"<section id=\"contents\">">>,
 		term_to_html(Term),
 		<<"</section><section id=\"operations\">">>,
@@ -31,27 +31,38 @@ from_term(Req=#{links := Links}, Term) ->
 
 %% @todo Link relation types can be a URI.
 %% @todo Automatically generate 'alternate' links for each media type GET provides.
-links_to_html([]) ->
+nav(#{links := []}) ->
 	[];
-links_to_html(Links) ->
+nav(#{bindings := Bindings, links := Links}) ->
 	[
 		<<"<nav><ul>">>,
 		[case Link of
 			{Rel, URIOrMod} ->
 				URI = if
 					is_atom(URIOrMod) ->
-						maps:get(uri, URIOrMod:describe());
+						case URIOrMod:describe() of
+							%% We don't want to build links to child templates
+							%% as we end up creating a link to self instead.
+							#{uri_template := _} when Rel =:= child ->
+								child_template;
+							#{uri_template := URITemplate} ->
+								cow_uri_template:expand(
+									unicode:characters_to_binary(URITemplate),
+									maps:fold(fun(Key, Value, Acc) ->
+										Acc#{atom_to_binary(Key, utf8) => Value}
+									end, #{}, Bindings));
+							#{uri := URI0} ->
+								URI0
+						end;
 					true ->
 						URIOrMod
 				end,
-				%% @todo Temporary mesure until we use URI Templates exclusively:
-				%% we don't want to link to routes that aren't a URI.
-				case string:find(URI, <<":">>) of
-					nomatch ->
-						[<<"<li><a href=\"">>, URI, <<"\" rel=\"">>, atom_to_binary(Rel, utf8), <<"\">">>,
-							URI, <<"</a></li>">>];
+				case URI of
+					child_template ->
+						[];
 					_ ->
-						[<<"<li>">>, URI, <<"</li>">>]
+						[<<"<li><a href=\"">>, URI, <<"\" rel=\"">>, atom_to_binary(Rel, utf8), <<"\">">>,
+							URI, <<"</a></li>">>]
 				end
 		end || Link <- Links],
 		<<"</ul></nav>">>
@@ -194,18 +205,58 @@ operation_to_html(Req=#{resource := Mod}, Op, Methods, Alias) when is_list(Metho
 operation_to_html(Req, Op, Method, Alias) ->
 	operation_to_html(Req, Op, [Method], Alias).
 
-header() ->
-	<<
-		"<!DOCTYPE html>"
-		"<html lang=\"en\">"
-		"<head>"
-		"<meta charset=\"utf-8\">"
-		"<title>Farwest auto-generated HTML</title>"
-		"<link rel=\"stylesheet\" href=\"/farwest-static/farwest.css\">"
-		"<script src=\"/farwest-static/farwest.js\"></script>"
-		"</head>"
-		"<body>"
-	>>.
+header(Req) ->
+	[
+		<<
+			"<!DOCTYPE html>"
+			"<html lang=\"en\">"
+			"<head>"
+			"<meta charset=\"utf-8\">"
+			"<title>Farwest auto-generated HTML</title>"
+			"<link rel=\"stylesheet\" href=\"/farwest-static/farwest.css\">"
+		>>,
+		header_links(Req),
+		<<
+			"<script src=\"/farwest-static/farwest.js\"></script>"
+			"</head>"
+			"<body>"
+		>>
+	].
+
+%% @todo Link relation types can be a URI.
+%% @todo Automatically generate 'alternate' links for each media type GET provides.
+header_links(#{bindings := Bindings, links := Links}) ->
+	[case Link of
+		{Rel, Mod} when is_atom(Mod) ->
+			Describe = Mod:describe(),
+			URI = case Describe of
+				%% We don't want to build links to child templates
+				%% as we end up creating a link to self instead.
+				#{uri_template := _} when Rel =:= child ->
+					child_template;
+				#{uri_template := URITemplate} ->
+					cow_uri_template:expand(
+						unicode:characters_to_binary(URITemplate),
+						maps:fold(fun(Key, Value, Acc) ->
+							Acc#{atom_to_binary(Key, utf8) => Value}
+						end, #{}, Bindings));
+				#{uri := URI0} ->
+					URI0
+			end,
+			case URI of
+				child_template ->
+					[];
+				_ ->
+					Provides = farwest:resource_provides(Describe),
+					[
+						[<<"<link rel=\"">>, atom_to_binary(Rel, utf8),
+							<<"\" type=\"">>, MT,
+							<<"\" href=\"">>, URI, <<"\">">>]
+					|| MT <- Provides]
+			end;
+		{Rel, URI} ->
+			[<<"<link rel=\"">>, atom_to_binary(Rel, utf8), <<"\" href=\"">>, URI, <<"\">">>]
+	end || Link <- Links].
 
 footer() ->
 	<<
