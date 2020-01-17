@@ -10,10 +10,14 @@ window.addEventListener('DOMContentLoaded', (event) => {
 				redirect: 'follow'
 			})
 			.then(function(response){
-				if (response.ok)
-					window.location = response.url;
-				else
+				if (response.ok){
+					if (form.getAttribute('method') == "DELETE")
+						window.location = document.querySelector("head>link[rel='parent']").href;
+					else
+						window.location = response.url;
+				}else{
 					alert("error: " + response.status + " " + response.statusText);
+				}
 			});
 
 			e.preventDefault();

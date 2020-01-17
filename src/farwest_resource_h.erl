@@ -22,6 +22,7 @@
 -export([content_types_accepted/2]).
 -export([provide_representation/2]).
 -export([accept_representation/2]).
+-export([delete_resource/2]).
 
 init(Req, Mod) ->
 	%% @todo Probably worth normalizing the state here.
@@ -135,6 +136,13 @@ set_variants_headers(Req=#{media_type := MediaType}, State) ->
 	end.
 
 accept_representation(Req0, State=#{resource := Mod}) ->
+	Op = farwest:req_to_operation(Req0, State),
+	case Mod:Op(Req0) of
+		{ok, Req} ->
+			{true, Req, State}
+	end.
+
+delete_resource(Req0, State=#{resource := Mod}) ->
 	Op = farwest:req_to_operation(Req0, State),
 	case Mod:Op(Req0) of
 		{ok, Req} ->
