@@ -136,6 +136,9 @@ execute(Req=#{host := Host, path := Path0}, Env=#{dispatch := Dispatch0}) ->
 %% match the full host/path. The path has a special <<"*">> value
 %% as well for "OPTIONS *" requests.
 %%
+%% The special binding name '_' will always match but will not
+%% be added to the resulting bindings.
+%%
 %% When a result is found, this function will return the handler module and
 %% options found in the dispatch list and a key-value list of bindings.
 
