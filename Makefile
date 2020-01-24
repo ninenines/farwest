@@ -15,3 +15,5 @@ dep_farwest_demo = git https://github.com/ninenines/farwest_demo master
 export LOCAL_FARWEST=1
 
 include erlang.mk
+
+TEST_ERLC_OPTS += +'{parse_transform, eunit_autoexport}'

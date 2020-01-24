@@ -40,19 +40,20 @@ nav(#{bindings := Bindings, links := Links}) ->
 			{Rel, URIOrMod} ->
 				URI = if
 					is_atom(URIOrMod) ->
-						case URIOrMod:describe() of
-							%% We don't want to build links to child templates
-							%% as we end up creating a link to self instead.
-							#{uri_template := _} when Rel =:= child ->
+						#{uri := URITemplate} = URIOrMod:describe(),
+						%% We don't want to build links to child templates
+						%% as we end up creating a link to self instead.
+						case {Rel, string:find(URITemplate, <<"{">>)} of
+							{child, nomatch} ->
+								URITemplate;
+							{child, _} ->
 								child_template;
-							#{uri_template := URITemplate} ->
+							_ ->
 								cow_uri_template:expand(
 									unicode:characters_to_binary(URITemplate),
 									maps:fold(fun(Key, Value, Acc) ->
 										Acc#{atom_to_binary(Key, utf8) => Value}
-									end, #{}, Bindings));
-							#{uri := URI0} ->
-								URI0
+									end, #{}, Bindings))
 						end;
 					true ->
 						URIOrMod
@@ -228,20 +229,20 @@ header(Req) ->
 header_links(#{bindings := Bindings, links := Links}) ->
 	[case Link of
 		{Rel, Mod} when is_atom(Mod) ->
-			Describe = Mod:describe(),
-			URI = case Describe of
-				%% We don't want to build links to child templates
-				%% as we end up creating a link to self instead.
-				#{uri_template := _} when Rel =:= child ->
+			Describe = #{uri := URITemplate} = Mod:describe(),
+			%% We don't want to build links to child templates
+			%% as we end up creating a link to self instead.
+			URI = case {Rel, string:find(URITemplate, <<"{">>)} of
+				{child, nomatch} ->
+					URITemplate;
+				{child, _} ->
 					child_template;
-				#{uri_template := URITemplate} ->
+				_ ->
 					cow_uri_template:expand(
 						unicode:characters_to_binary(URITemplate),
 						maps:fold(fun(Key, Value, Acc) ->
 							Acc#{atom_to_binary(Key, utf8) => Value}
-						end, #{}, Bindings));
-				#{uri := URI0} ->
-					URI0
+						end, #{}, Bindings))
 			end,
 			case URI of
 				child_template ->

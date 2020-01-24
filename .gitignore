@@ -1,4 +1,5 @@
 .erlang.mk/
+.farwest.plt
 deps/
 ebin/*.beam
 ebin/test

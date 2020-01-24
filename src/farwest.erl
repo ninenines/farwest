@@ -61,12 +61,8 @@ init_state() ->
 	}).
 
 link_to(Mod, Vars) when is_atom(Mod) ->
-	case Mod:describe() of
-		#{uri_template := URITemplate} ->
-			cow_uri_template:expand(unicode:characters_to_binary(URITemplate), Vars);
-		#{uri := URI} ->
-			URI
-	end.
+	#{uri := URITemplate} = Mod:describe(),
+	cow_uri_template:expand(unicode:characters_to_binary(URITemplate), Vars).
 
 list_resource_modules(App) ->
 	{ok, Mod} = application:get_env(App, farwest_config_module),
@@ -81,7 +77,7 @@ list_routes(App) ->
 				{URI, farwest_resource_h, Mod}
 		end
 	end || Mod <- list_resource_modules(App)]
-	++ [{"/farwest-static/[...]", cowboy_static, {priv_dir, farwest, "static/"}}].
+	++ [{"/farwest-static{/path_info*}", cowboy_static, {priv_dir, farwest, "static/"}}].
 
 media_type_to_alias(MediaType, Mod) when is_atom(Mod) ->
 	media_type_to_alias(MediaType, Mod:describe());
