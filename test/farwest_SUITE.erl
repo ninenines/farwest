@@ -50,10 +50,10 @@ list_routes(_) ->
 	put('$resource_modules', [forum_topics_r, forum_topic_r, forum_users_r, forum_user_r]),
 	[
 		{"/", farwest_resource_h, forum_topics_r},
-		{"/topics/:topic", farwest_resource_h, forum_topic_r},
+		{"/topics/{topic}", farwest_resource_h, forum_topic_r},
 		{"/users", farwest_resource_h, forum_users_r},
-		{"/users/:user", farwest_resource_h, forum_user_r},
-		{"/farwest-static/[...]", cowboy_static, {priv_dir, farwest, "static/"}}
+		{"/users/{user}", farwest_resource_h, forum_user_r},
+		{"/farwest-static{/path_info*}", cowboy_static, {priv_dir, farwest, "static/"}}
 	] = farwest:list_routes(farwest),
 	ok.
 

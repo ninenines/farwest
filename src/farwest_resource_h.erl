@@ -72,12 +72,12 @@ provide_representation(Req0=#{media_type := MediaType}, State=#{resource := Mod}
 set_link_headers(Req0, Links0) ->
 	AllLinks = lists:flatten([case Link of
 		{Rel, Mod} when is_atom(Mod) ->
-			Describe = Mod:describe(),
-			{Type, Target} = case maps:get(uri_template, Describe, undefined) of
-				undefined ->
-					{uri, maps:get(uri, Mod:describe())};
-				URITemplate ->
-					{uri_template, URITemplate}
+			Describe = #{uri := URI} = Mod:describe(),
+			{Type, Target} = case string:find(URI, <<"{">>) of
+				nomatch ->
+					{uri, URI};
+				_ ->
+					{uri_template, URI}
 			end,
 			MediaTypes = farwest:resource_provides(Describe),
 			Attributes = case MediaTypes of

@@ -8,7 +8,7 @@
 -export([to_representation/3]).
 
 describe() -> #{
-	uri => "/topics/:topic",
+	uri => "/topics/{topic}",
 	media_types => #{
 		html => ["text/html"],
 		json => ["application/json"],

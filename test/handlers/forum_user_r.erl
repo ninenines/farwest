@@ -3,5 +3,5 @@
 -export([describe/0]).
 
 describe() -> #{
-	uri => "/users/:user"
+	uri => "/users/{user}"
 }.
