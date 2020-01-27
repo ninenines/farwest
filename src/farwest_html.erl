@@ -62,14 +62,14 @@ nav(#{bindings := Bindings, links := Links}) ->
 					child_template ->
 						[];
 					_ ->
-						[<<"<li><a href=\"">>, URI, <<"\" rel=\"">>, atom_to_binary(Rel, utf8), <<"\">">>,
-							URI, <<"</a></li>">>]
+						[<<"<li><a href=\"">>, enc_attr(URI),
+							<<"\" rel=\"">>, enc_attr(atom_to_binary(Rel, utf8)), <<"\">">>,
+							enc(URI), <<"</a></li>">>]
 				end
 		end || Link <- Links],
 		<<"</ul></nav>">>
 	].
 
-%% @todo Don't forget to htmlencode!
 term_to_html([]) ->
 	<<>>;
 term_to_html(List) when is_list(List) ->
@@ -77,9 +77,9 @@ term_to_html(List) when is_list(List) ->
 term_to_html(Map) when is_map(Map) ->
 	[<<"<dl>">>, map_to_html(Map), <<"</dl>">>];
 term_to_html(Bin) when is_binary(Bin) ->
-	[<<"<p>">>, Bin, <<"</p>">>];
+	[<<"<p>">>, enc(Bin), <<"</p>">>];
 term_to_html(Atom) when is_atom(Atom) ->
-	[<<"<p>">>, atom_to_binary(Atom, utf8), <<"</p>">>];
+	[<<"<p>">>, enc(atom_to_binary(Atom, utf8)), <<"</p>">>];
 term_to_html(Int) when is_integer(Int) ->
 	integer_to_binary(Int);
 term_to_html({'$fw_tab', []}) ->
@@ -92,7 +92,7 @@ term_to_html({'$fw_tab', List=[First|_]}) when is_map(First) ->
 term_to_html({'$fw_tab', Keys, List=[First|_]}) when is_map(First) ->
 	[
 		<<"<table><thead><tr>">>,
-		[[<<"<th>">>, Key, <<"</th>">>] || Key <- Keys],
+		[[<<"<th>">>, enc(Key), <<"</th>">>] || Key <- Keys],
 		<<"</tr></thead><tbody>">>,
 		[map_to_html_row(Map, Keys) || Map <- List],
 		<<"</tbody></table>">>
@@ -109,9 +109,9 @@ term_to_html({'$fw_tab', Cols, List=[First|_]}) when is_integer(Cols), is_tuple(
 term_to_html({'$fw_link', Rel, Target, Term}) ->
 	[
 		<<"<a rel=\"">>,
-		atom_to_binary(Rel, utf8),
+		enc_attr(atom_to_binary(Rel, utf8)),
 		<<"\" href=\"">>,
-		Target,
+		enc(Target),
 		<<"\">">>,
 		term_to_html(Term),
 		<<"</a>">>
@@ -119,13 +119,13 @@ term_to_html({'$fw_link', Rel, Target, Term}) ->
 term_to_html(Tuple) when is_tuple(Tuple) ->
 	[<<"<ol>">>, list_to_html(tuple_to_list(Tuple)), <<"</ol>">>];
 term_to_html(Ref) when is_reference(Ref) ->
-	[<<"<p>">>, ref_to_list(Ref), <<"</p>">>];
+	[<<"<p>">>, enc(ref_to_list(Ref)), <<"</p>">>];
 term_to_html(Fun) when is_function(Fun) ->
-	[<<"<p>">>, erlang:fun_to_list(Fun), <<"</p>">>];
+	[<<"<p>">>, enc(erlang:fun_to_list(Fun)), <<"</p>">>];
 term_to_html(Pid) when is_pid(Pid) ->
-	[<<"<p>">>, pid_to_list(Pid), <<"</p>">>];
+	[<<"<p>">>, enc(pid_to_list(Pid)), <<"</p>">>];
 term_to_html(Port) when is_port(Port) ->
-	[<<"<p>">>, erlang:port_to_list(Port), <<"</p>">>].
+	[<<"<p>">>, enc(erlang:port_to_list(Port)), <<"</p>">>].
 
 list_to_html(List) ->
 	[[<<"<li>">>, term_to_html(E), <<"</li>">>] || E <- List].
@@ -152,6 +152,28 @@ tuple_to_html_row(Tuple, Keys) ->
 		<<"</tr>">>
 	].
 
+enc(String) when is_list(String) ->
+	enc(unicode:characters_to_binary(String));
+enc(Bin) when is_binary(Bin) ->
+	<<case C of
+		$< -> <<"&lt;">>;
+		$> -> <<"&gt;">>;
+		$$ -> <<"&amp;">>;
+		_ -> <<C>>
+	end || <<C>> <= Bin>>.
+
+enc_attr(String) when is_list(String) ->
+	enc_attr(unicode:characters_to_binary(String));
+enc_attr(Bin) when is_binary(Bin) ->
+	<<case C of
+		$< -> <<"&lt;">>;
+		$> -> <<"&gt;">>;
+		$$ -> <<"&amp;">>;
+		$" -> <<"&quot;">>;
+		$' -> <<"&apos;">>;
+		_ -> <<C>>
+	end || <<C>> <= Bin>>.
+
 operations_to_html(Req=#{resource := Mod}) ->
 	RegisteredOps = farwest:get_operations(),
 	#{operations := Ops} = Mod:describe(),
@@ -175,11 +197,11 @@ operations_to_html(Req=#{resource := Mod}) ->
 operation_to_html(Op, Methods) when is_list(Methods) ->
 	[[
 		<<"<form method=\"">>,
-		Method,
+		enc_attr(Method),
 		<<"\" data-operation=\"">>,
-		atom_to_binary(Op, utf8),
+		enc_attr(atom_to_binary(Op, utf8)),
 		<<"\"><legend>">>,
-		atom_to_binary(Op, utf8),
+		enc(atom_to_binary(Op, utf8)),
 		<<"</legend><input type=\"submit\"/></form>">>
 	] || Method <- Methods];
 operation_to_html(Op, Method) ->
@@ -192,15 +214,15 @@ operation_to_html(Req=#{resource := Mod}, Op, Methods, Alias) when is_list(Metho
 	Data = io_lib:format("~0p", [Data0]),
 	[[
 		<<"<form method=\"">>,
-		Method,
+		enc_attr(Method),
 		<<"\" data-operation=\"">>,
-		atom_to_binary(Op, utf8),
+		enc_attr(atom_to_binary(Op, utf8)),
 		<<"\" enctype=\"text/plain\"><legend>">>, %% @todo Fix enctype.
-		atom_to_binary(Op, utf8),
+		enc(atom_to_binary(Op, utf8)),
 		<<": ">>,
-		farwest:resource_media_type(Mod, Alias),
+		enc(farwest:resource_media_type(Mod, Alias)),
 		<<"</legend><textarea name=\"representation\" required>">>,
-		Data,
+		enc(Data),
 		<<"</textarea><input type=\"submit\"/></form>">>
 	] || Method <- Methods];
 operation_to_html(Req, Op, Method, Alias) ->
@@ -250,13 +272,14 @@ header_links(#{bindings := Bindings, links := Links}) ->
 				_ ->
 					Provides = farwest:resource_provides(Describe),
 					[
-						[<<"<link rel=\"">>, atom_to_binary(Rel, utf8),
-							<<"\" type=\"">>, MT,
-							<<"\" href=\"">>, URI, <<"\">">>]
+						[<<"<link rel=\"">>, enc_attr(atom_to_binary(Rel, utf8)),
+							<<"\" type=\"">>, enc_attr(MT),
+							<<"\" href=\"">>, enc_attr(URI), <<"\">">>]
 					|| MT <- Provides]
 			end;
 		{Rel, URI} ->
-			[<<"<link rel=\"">>, atom_to_binary(Rel, utf8), <<"\" href=\"">>, URI, <<"\">">>]
+			[<<"<link rel=\"">>, enc_attr(atom_to_binary(Rel, utf8)),
+				<<"\" href=\"">>, enc_attr(URI), <<"\">">>]
 	end || Link <- Links].
 
 footer() ->
