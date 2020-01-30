@@ -25,20 +25,21 @@
 -export([delete_resource/2]).
 
 init(Req, Mod) ->
-	%% @todo Probably worth normalizing the state here.
-	%% @todo Probably put the Describe in Req itself instead. Then we can access it from everywhere.
-	State = Mod:describe(),
-	{cowboy_rest, Req#{resource => Mod}, State#{resource => Mod}}.
+	%% @todo Probably worth normalizing the describe here.
+	{cowboy_rest, Req#{
+		resource => Mod,
+		resource_describe => Mod:describe()
+	}, #{}}.
 
-allowed_methods(Req, State) ->
-	{farwest:resource_list_methods(State), Req, State}.
+allowed_methods(Req=#{resource_describe := Describe}, State) ->
+	{farwest:resource_list_methods(Describe), Req, State}.
 
-options(Req0, State=#{resource := Mod}) ->
+options(Req0=#{resource := Mod}, State) ->
 	{ok, Links, Req1} = Mod:links(Req0),
 	Req = set_link_headers(Req1, Links),
 	{ok, Req, State}.
 
-resource_exists(Req0, State=#{resource := Mod}) ->
+resource_exists(Req0=#{resource := Mod}, State) ->
 	case Mod:locate(Req0) of
 		{found, Req} ->
 			{true, Req, State};
@@ -48,22 +49,23 @@ resource_exists(Req0, State=#{resource := Mod}) ->
 
 %% @todo We should always give the types for GET,
 %% @todo plus the types for the current method? Or all methods?
-content_types_provided(Req, State) ->
+content_types_provided(Req=#{resource_describe := Describe}, State) ->
 	{[{MT, provide_representation}
-		|| MT <- farwest:resource_provides(State)], Req, State}.
+		|| MT <- farwest:resource_provides(Describe)], Req, State}.
 
-content_types_accepted(Req, State) ->
+content_types_accepted(Req=#{resource_describe := Describe}, State) ->
 	{[{MT, accept_representation}
-		|| MT <- farwest:resource_accepts(State)], Req, State}.
+		|| MT <- farwest:resource_accepts(Describe)], Req, State}.
 
-provide_representation(Req0=#{media_type := MediaType}, State=#{resource := Mod}) ->
+provide_representation(Req0=#{resource := Mod, resource_describe := Describe,
+		media_type := MediaType}, State) ->
 	case Mod:get(Req0) of
 		{ok, Data, Req1} ->
 			{ok, Links, Req2} = Mod:links(Req1),
-			Alias = farwest:media_type_to_alias(MediaType, State),
+			Alias = farwest:media_type_to_alias(MediaType, Describe),
 			{ok, Body, Req3} = Mod:to_representation(Req2#{links => Links}, Alias, Data),
 			Req4 = set_link_headers(Req3, Links),
-			Req = set_variants_headers(Req4, State),
+			Req = set_variants_headers(Req4),
 			{Body, Req, State}
 	end.
 
@@ -117,8 +119,8 @@ set_link_headers(Req0, Links0) ->
 	end.
 
 %% @todo Also need to do language, encoding, session cookie, etc.
-set_variants_headers(Req=#{media_type := MediaType}, State) ->
-	MediaTypes = farwest:resource_provides(State),
+set_variants_headers(Req=#{resource_describe := Describe, media_type := MediaType}) ->
+	MediaTypes = farwest:resource_provides(Describe),
 	case MediaTypes of
 		%% Doesn't vary.
 		[] -> Req;
@@ -135,15 +137,15 @@ set_variants_headers(Req=#{media_type := MediaType}, State) ->
 			}, Req)
 	end.
 
-accept_representation(Req0, State=#{resource := Mod}) ->
-	Op = farwest:req_to_operation(Req0, State),
+accept_representation(Req0=#{resource := Mod}, State) ->
+	Op = farwest:req_to_operation(Req0),
 	case Mod:Op(Req0) of
 		{ok, Req} ->
 			{true, Req, State}
 	end.
 
-delete_resource(Req0, State=#{resource := Mod}) ->
-	Op = farwest:req_to_operation(Req0, State),
+delete_resource(Req0=#{resource := Mod}, State) ->
+	Op = farwest:req_to_operation(Req0),
 	case Mod:Op(Req0) of
 		{ok, Req} ->
 			{true, Req, State}

@@ -22,7 +22,7 @@
 -export([media_type_to_alias/2]).
 -export([normalize_media_type/1]).
 -export([register_operation/2]).
--export([req_to_operation/2]).
+-export([req_to_operation/1]).
 -export([resource_list_methods/1]).
 -export([resource_list_ops/1]).
 -export([resource_media_type/2]).
@@ -105,9 +105,7 @@ register_operation(Op, Def) ->
 	persistent_term:put(farwest_operations, Operations#{Op => Def}).
 
 %% @todo We need to differentiate between different POST operations.
-req_to_operation(Req, Mod) when is_atom(Mod) ->
-	req_to_operation(Req, Mod:describe());
-req_to_operation(#{method := Method}, #{operations := Operations}) ->
+req_to_operation(#{method := Method, resource_describe := #{operations := Operations}}) ->
 	%% @todo This should probably be computed only once.
 	MethodOp = maps:fold(fun
 		(Op, #{methods := Ms}, Acc0) when is_list(Ms) ->
@@ -134,8 +132,10 @@ resource_list_ops(#{operations := Operations}) ->
 	maps:keys(Operations).
 
 %% Returns the *first* media type for the given alias.
-resource_media_type(Mod, Alias) ->
-	#{media_types := #{Alias := [MT|_]}} = Mod:describe(),
+resource_media_type(Mod, Alias) when is_atom(Mod) ->
+	resource_media_type(Mod:describe(), Alias);
+resource_media_type(#{media_types := MediaTypes}, Alias) ->
+	#{Alias := [MT|_]} = MediaTypes,
 	normalize_media_type(MT).
 
 resource_provides(Mod) when is_atom(Mod) ->

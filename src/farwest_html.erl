@@ -174,9 +174,8 @@ enc_attr(Bin) when is_binary(Bin) ->
 		_ -> <<C>>
 	end || <<C>> <= Bin>>.
 
-operations_to_html(Req=#{resource := Mod}) ->
+operations_to_html(Req=#{resource_describe := #{operations := Ops}}) ->
 	RegisteredOps = farwest:get_operations(),
-	#{operations := Ops} = Mod:describe(),
 	maps:fold(fun(Op, OpInfo, Acc) ->
 		case RegisteredOps of
 			%% @todo We also want to add safe operations (like get to different media types).
@@ -207,7 +206,8 @@ operation_to_html(Op, Methods) when is_list(Methods) ->
 operation_to_html(Op, Method) ->
 	operation_to_html(Op, [Method]).
 
-operation_to_html(Req=#{resource := Mod}, Op, Methods, Alias) when is_list(Methods) ->
+operation_to_html(Req=#{resource := Mod, resource_describe := Describe},
+		Op, Methods, Alias) when is_list(Methods) ->
 	%% @todo Obviously we don't want to call get twice...
 	{ok, Data0, _} = Mod:get(Req),
 	%% @todo Obviously we should call to_representation or something.
@@ -219,11 +219,11 @@ operation_to_html(Req=#{resource := Mod}, Op, Methods, Alias) when is_list(Metho
 		enc_attr(atom_to_binary(Op, utf8)),
 		%% We need to cheat for the media type because browsers don't support much.
 		<<"\" data-media-type=\"">>,
-		enc_attr(farwest:resource_media_type(Mod, Alias)),
+		enc_attr(farwest:resource_media_type(Describe, Alias)),
 		<<"\" enctype=\"text/plain\"><legend>">>,
 		enc(atom_to_binary(Op, utf8)),
 		<<": ">>,
-		enc(farwest:resource_media_type(Mod, Alias)),
+		enc(farwest:resource_media_type(Describe, Alias)),
 		<<"</legend><textarea name=\"representation\" required>">>,
 		enc(Data),
 		<<"</textarea><input type=\"submit\"/></form>">>

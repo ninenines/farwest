@@ -25,9 +25,8 @@ from_term(Req, Term) ->
 		operations => operations_to_bed(Req)
 	}).
 
-operations_to_bed(Req=#{resource := Mod}) ->
+operations_to_bed(Req=#{resource_describe := #{operations := Ops}}) ->
 	RegisteredOps = farwest:get_operations(),
-	#{operations := Ops} = Mod:describe(),
 	lists:flatten(maps:fold(fun(Op, OpInfo, Acc) ->
 		case RegisteredOps of
 			%% @todo We also want to add safe operations (like get to different media types).
@@ -53,11 +52,11 @@ operation_to_bed(Op, Methods) when is_list(Methods) ->
 operation_to_bed(Op, Method) ->
 	operation_to_bed(Op, [Method]).
 
-operation_to_bed(#{resource := Mod}, Op, Methods, Alias) when is_list(Methods) ->
+operation_to_bed(#{resource_describe := Describe}, Op, Methods, Alias) when is_list(Methods) ->
 	[#{
 		operation => Op,
 		method => Method,
-		media_type => farwest:resource_media_type(Mod, Alias)
+		media_type => farwest:resource_media_type(Describe, Alias)
 	} || Method <- Methods];
 operation_to_bed(Req, Op, Method, Alias) ->
 	operation_to_bed(Req, Op, [Method], Alias).
