@@ -217,7 +217,10 @@ operation_to_html(Req=#{resource := Mod}, Op, Methods, Alias) when is_list(Metho
 		enc_attr(Method),
 		<<"\" data-operation=\"">>,
 		enc_attr(atom_to_binary(Op, utf8)),
-		<<"\" enctype=\"text/plain\"><legend>">>, %% @todo Fix enctype.
+		%% We need to cheat for the media type because browsers don't support much.
+		<<"\" data-media-type=\"">>,
+		enc_attr(farwest:resource_media_type(Mod, Alias)),
+		<<"\" enctype=\"text/plain\"><legend>">>,
 		enc(atom_to_binary(Op, utf8)),
 		<<": ">>,
 		enc(farwest:resource_media_type(Mod, Alias)),

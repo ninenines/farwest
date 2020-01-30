@@ -4,7 +4,7 @@ window.addEventListener('DOMContentLoaded', (event) => {
 			fetch(form.target, {
 				method: form.getAttribute('method'),
 				headers: {
-					'content-type': form.enctype
+					'content-type': form.dataset.mediaType
 				},
 				body: form.elements[0].value,
 				redirect: 'follow'
