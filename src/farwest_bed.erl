@@ -26,30 +26,38 @@ from_term(Req, Term) ->
 	}).
 
 operations_to_bed(Req=#{resource := Mod}) ->
+	RegisteredOps = farwest:get_operations(),
 	#{operations := Ops} = Mod:describe(),
 	lists:flatten(maps:fold(fun(Op, OpInfo, Acc) ->
-		Inputs = maps:get(input, OpInfo, []),
-		[
-			[
-				operation_to_bed(Req, Op, Alias)
-			|| Alias <- Inputs]
-		|Acc]
+		case RegisteredOps of
+			%% @todo We also want to add safe operations (like get to different media types).
+			#{Op := #{safe := true}} ->
+				Acc;
+			#{Op := #{methods := Methods, request_payload := none}} ->
+				[operation_to_bed(Op, Methods)|Acc];
+			#{Op := #{methods := Methods, request_payload := representation}} ->
+				Inputs = maps:get(input, OpInfo, []),
+				[
+					[
+						operation_to_bed(Req, Op, Methods, Alias)
+					|| Alias <- Inputs]
+				|Acc]
+		end
 	end, [], Ops)).
 
-%% @todo Don't keep operations/methods hardcoded. Ideally
-%% we would be able to describe operations entirely including
-%% whether they are idempotent, take input, generally do output
-%% and so on, and the method would be chosen based on that if
-%% there are no suitable standard method.
-operation_to_bed(#{resource := Mod}, Op, Alias) ->
-	%% @todo Make operations definable.
-	Method = case Op of
-		put -> <<"PUT">>;
-		process -> <<"POST">>;
-		delete -> <<"DELETE">>
-	end,
-	#{
+operation_to_bed(Op, Methods) when is_list(Methods) ->
+	[#{
+		operation => Op,
+		method => Method
+	} || Method <- Methods];
+operation_to_bed(Op, Method) ->
+	operation_to_bed(Op, [Method]).
+
+operation_to_bed(#{resource := Mod}, Op, Methods, Alias) when is_list(Methods) ->
+	[#{
 		operation => Op,
 		method => Method,
 		media_type => farwest:resource_media_type(Mod, Alias)
-	}.
+	} || Method <- Methods];
+operation_to_bed(Req, Op, Method, Alias) ->
+	operation_to_bed(Req, Op, [Method], Alias).
